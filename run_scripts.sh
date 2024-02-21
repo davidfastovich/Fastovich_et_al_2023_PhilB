@@ -35,7 +35,7 @@ python modern_data_reproject.py
 Rscript sem_paleoclimate_effect.R
 
 echo "Figure 3"
-Rscript amoc_vs_sem_aic.R
+Rscript amoc_vs_sem_loglik.R
 
 echo "Figure S1"
 python richness_maps.py
@@ -44,7 +44,7 @@ echo "Figure S4, Figure S5"
 
 python tas_model_skill.py
 python pr_model_skill.py
-Rscript climate_model_skill_vs_sem_aic.R
+Rscript climate_model_skill_vs_sem_loglik.R
 
 echo "Figure S6, Figure S7"
 
@@ -74,4 +74,12 @@ Rscript resolution_sensitivity/100km/sem_modern_climate_effect.R
 
 echo "Figure S13"
 
-Rscript resolution_sensitivity/100km/amoc_vs_sem_aic.R
+Rscript resolution_sensitivity/100km/amoc_vs_sem_loglik.R
+
+echo "Figure S14, Figure S15"
+
+python plot_paleoclimate.py
+
+echo "Figure S16"
+
+Rscript model_correlogram.R

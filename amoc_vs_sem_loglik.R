@@ -45,18 +45,19 @@ setwd("~/Fastovich_et_al_2023_PhilB")
 # for TraCE-21ka, TraCE-MWF, HadCM3 , and CM2Mc
 amoc <- read.csv("skill_scores/amoc.csv")
 
-# AIC from the SEM models calculated here
-aic <- read_csv("skill_scores/sar_diag.csv") %>%
-  select(AIC_fit_50, AIC_fit_100, climate_simulation, species) %>% 
+# loglik from the SEM models calculated here
+loglik <- read_csv("skill_scores/sar_diag.csv") %>%
+  select(logLik_fit_50, logLik_fit_100, climate_simulation, species) %>% 
   rename(model = climate_simulation)
 
-# Retain 50 km neighborhood AIC for all taxonomic groups except birds
-aic <- aic %>% 
-  mutate(AIC =
-           case_when(
-             species != "bird" ~ AIC_fit_50,
-             species == "bird" ~ AIC_fit_100,
-           )
+# Retain 50 km neighborhood loglik for all taxonomic groups except birds
+loglik <- loglik %>% 
+  mutate(
+    loglik =
+      case_when(
+        species != "bird" ~ logLik_fit_50,
+        species == "bird" ~ logLik_fit_100,
+      )
   )
 
 
@@ -80,21 +81,33 @@ rename_species <- function(x) {
 }
 
 # Apply function
-aic$species <- sapply(aic$species, rename_species, USE.NAMES = FALSE)
+loglik$species <- sapply(loglik$species, rename_species, USE.NAMES = FALSE)
 
 ###########################
 # COMBINE ALL DATA TOGETHER
 ###########################
 
-# Join AMOC and AIC df's together
-amoc_aic <- left_join(aic, amoc, by = "model")
-amoc_aic$amoc_change <- amoc_aic$amoc_ref - amoc_aic$amoc_pert
+# Join AMOC and loglik df's together
+amoc_loglik <- left_join(loglik, amoc, by = "model")
+amoc_loglik$amoc_change <- amoc_loglik$amoc_ref - amoc_loglik$amoc_pert
 
 # Setting value for AMOC change manually with data from Ritz et al., 2013, NGS
 # Using manual approach because data is only given as anomalies from mean so
 # while I dont konw ref state or perturb state I do know the change between the
 # two.
-amoc_aic$amoc_change[amoc_aic$model == "PROXY_KRIGING"] <- 11.013636
+amoc_loglik$amoc_change[amoc_loglik$model == "PROXY_KRIGING"] <- 11.013636
+
+# Rename models
+amoc_loglik <- amoc_loglik %>% 
+  mutate(
+    model = case_when(
+      model == "PROXY_KRIGING" ~ "Proxy Kriging",
+      model == "TRACE_LORENZ" ~ "TraCE-21ka\n(Statistcally Downscaled)",
+      model == "TRACE_MWF" ~ "TraCE-MWF (Single Forcing)",
+      model == "TRACE" ~ "TraCE-21ka",
+      TRUE ~ model
+    )
+  )
 
 ######
 # PLOT
@@ -110,18 +123,15 @@ environment(guides_merge) <- environment(ggplot)
 assignInNamespace("guides_merge", guides_merge, pos = "package:ggplot2")
 
 # Generate plot
-amoc_plot <- ggplot(data = amoc_aic, aes(x = amoc_change, y = AIC, shape = model, color = species, fill = species)) + 
-  # geom_ribbon(data = regression_line, aes(x = amoc_change, y = fit, ymin = lwr, ymax = upr), color = "transparent", alpha = 0.2) +
-  # geom_line(data = regression_line, aes(x = amoc_change, y = fit, linetype = sig)) + 
-  # scale_linetype_manual(values = c("dashed", "solid"), name = "Model Significance") + 
+amoc_plot <- ggplot(data = amoc_loglik, aes(x = amoc_change, y = loglik, shape = model, color = species, fill = species)) + 
   geom_point() + 
   scale_shape_manual(values = 1:13, name = "Model") + 
   scale_color_brewer(palette = "Dark2", name = "Species") +
   scale_fill_brewer(palette = "Dark2", name = "Species", guide = "none") +
   facet_wrap(.~species, scales = "free_y", nrow = 5) +
   xlab("AMOC Reduction (Sv)") + 
+  ylab("Log-Likelihood") + 
   guides(color = guide_legend(order = 1), linetype = guide_legend(order = 2), shape = guide_legend(order = 3)) +
-  scale_y_reverse() +
   theme_bw() + 
   theme(strip.background = element_blank(),
         strip.text = element_text(color = "black"),

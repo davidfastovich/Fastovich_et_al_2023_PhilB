@@ -38,18 +38,17 @@ setwd("~/Fastovich_et_al_2023_PhilB")
 # READ IN DATA
 ##############
 
-# AIC scores calculated by me and are the result of spatial error models
-aic <- read_csv("skill_scores/sar_diag.csv") %>%
+# loglik scores calculated by me and are the result of spatial error models
+loglik <- read_csv("skill_scores/sar_diag.csv") %>%
   select(
-    AIC_fit_50,
-    AIC_fit_100,
+    logLik_fit_50,
+    logLik_fit_100,
     paleo_tave_deviance,
     paleo_pr_deviance,
     paleo_pr2_deviance,
     modern_tave_deviance,
     modern_pr_deviance,
     climate_simulation,
-    pseudo_r2_fit_50,
     species
   ) %>% 
   rename(
@@ -57,12 +56,12 @@ aic <- read_csv("skill_scores/sar_diag.csv") %>%
     Species = species,
   )
 
-# Retain 50 km neighborhood AIC for all taxonomic groups except birds
-aic <- aic %>% 
-  mutate(AIC =
+# Retain 50 km neighborhood loglik for all taxonomic groups except birds
+loglik <- loglik %>% 
+  mutate(loglik =
            case_when(
-             Species != "bird" ~ AIC_fit_50,
-             Species == "bird" ~ AIC_fit_100,
+             Species != "bird" ~ logLik_fit_50,
+             Species == "bird" ~ logLik_fit_100,
            )
   )
 
@@ -88,17 +87,16 @@ rename_species <- function(x) {
   }
 }
 
-# Apply function to the AIC data frames
-aic$Species <- sapply(aic$Species, rename_species, USE.NAMES = FALSE)
+# Apply function to the loglik data frames
+loglik$Species <- sapply(loglik$Species, rename_species, USE.NAMES = FALSE)
 
 ####################
 # SUMMARIZE THE DATA
 ####################
 
-species_pivot <- aic %>% 
+species_pivot <- loglik %>% 
   group_by(Species) %>% 
-  summarise(`Nagelkerke's Psuedo R2` = mean(pseudo_r2_fit_50),
-            `Paleotemperature Deviance Explained (%)` = mean(paleo_tave_deviance),
+  summarise(`Paleotemperature Deviance Explained (%)` = mean(paleo_tave_deviance),
             `Paleoprecipitation Deviance Explained (%)` = mean(paleo_pr_deviance),
             `Paleoprecipitation^2 Deviance Explained (%)` = mean(paleo_pr2_deviance),
             `Modern Temperature Deviance Explained (%)` = mean(modern_tave_deviance),
@@ -109,10 +107,9 @@ species_pivot <- aic %>%
   ) %>% 
   write_csv("figures/table_1.csv")
 
-model_pivot <- aic %>% 
+model_pivot <- loglik %>% 
   group_by(`Climate Model`) %>% 
-  summarise(`Nagelkerke's Psuedo R2` = mean(pseudo_r2_fit_50),
-            `Paleotemperature Deviance Explained (%)` = mean(paleo_tave_deviance),
+  summarise(`Paleotemperature Deviance Explained (%)` = mean(paleo_tave_deviance),
             `Paleoprecipitation Deviance Explained (%)` = mean(paleo_pr_deviance),
             `Paleoprecipitation^2 Deviance Explained (%)` = mean(paleo_pr2_deviance),
             `Modern Temperature Deviance Explained (%)` = mean(modern_tave_deviance),

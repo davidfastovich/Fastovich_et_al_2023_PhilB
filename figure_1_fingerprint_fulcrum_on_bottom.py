@@ -190,14 +190,16 @@ plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.cm.tab20.colors) # Con
 ############################
 # PLOT DATA - SCATTER ON TOP
 ############################
+
+(13.2/12)*12.75
 #%%
 
 # Marker dictionary, plot title
 proxy_marker_dict = {'Fossil-Pollen': 's', 'brGDGT': '^'}
 
 # GridSpec configuration
-fig = plt.figure(figsize=(12, 13.2), constrained_layout=True)
-gs = gridspec.GridSpec(nrows=3, ncols=2, figure=fig, height_ratios=(1, 0.1, 1), width_ratios=(1, 1))
+fig = plt.figure(figsize=(12.75, 14.025), constrained_layout=True)
+gs = gridspec.GridSpec(nrows=3, ncols=2, figure=fig, height_ratios=(1, 0.05, 1), width_ratios=(1, 1))
 
 # AX1 - Mean Temperature -----------------------------------------------------
 
@@ -231,7 +233,7 @@ for kind in proxy_marker_dict:
                label=kind,
                transform=ccrs.PlateCarree())
 
-ax1_ins = inset_axes(ax1, width=3.2, height=3.2, loc='center', bbox_to_anchor=(325, 588.5), axes_class=cartopy.mpl.geoaxes.GeoAxes, axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
+ax1_ins = inset_axes(ax1, width=3.2, height=3.2, loc='center', bbox_to_anchor=(534, 1038.5), axes_class=cartopy.mpl.geoaxes.GeoAxes, axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
 cb = ax1_ins.contourf(model_tas_mean.lon,
                   model_tas_mean.lat,
                   model_tas_mean.values,
@@ -242,6 +244,11 @@ cb = ax1_ins.contourf(model_tas_mean.lon,
                   extend='min',
                   transform=ccrs.PlateCarree())
 ax1_ins.coastlines()
+
+# Add ticks for latitude and longitude
+ax1.tick_params(top=True, labeltop=True, bottom=True, labelbottom=True, right=True, labelright=True)
+ax1.set_xticks(np.arange(-90, -50, 5), crs=ccrs.PlateCarree())
+ax1.set_yticks(np.arange(20, 65, 5), crs=ccrs.PlateCarree())
 
 # Configure and add colorbar
 cb_ax = fig.add_subplot(gs[1, 0])
@@ -276,7 +283,7 @@ ax2.scatter(x=proxy_pr['long'],
            label="Fossil-Pollen",
            transform=ccrs.PlateCarree())
 
-ax2_ins = inset_axes(ax2, width=3.2, height=3.2, loc='center', bbox_to_anchor=(737.5, 588.5), axes_class=cartopy.mpl.geoaxes.GeoAxes, axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
+ax2_ins = inset_axes(ax2, width=3.2, height=3.2, loc='center', bbox_to_anchor=(1272.5, 1038.5), axes_class=cartopy.mpl.geoaxes.GeoAxes, axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
 cb = ax2_ins.contourf(model_pr_mean.lon,
                   model_pr_mean.lat,
                   model_pr_mean.values,
@@ -286,6 +293,11 @@ cb = ax2_ins.contourf(model_pr_mean.lon,
                   transform=ccrs.PlateCarree())
 ax2_ins.coastlines()
 
+# Add ticks for latitude and longitude
+ax2.tick_params(top=True, labeltop=True, bottom=True, labelbottom=True, right=True, labelright=True)
+ax2.set_xticks(np.arange(-90, -50, 5), crs=ccrs.PlateCarree())
+ax2.set_yticks(np.arange(20, 65, 5), crs=ccrs.PlateCarree())
+
 # Configure and add colorbar
 cb_ax = fig.add_subplot(gs[1, 1])
 colorbar = plt.colorbar(cb, orientation='horizontal', cax=cb_ax)
@@ -293,7 +305,6 @@ colorbar.set_label('Multi-Model Mean (mm/day)', fontsize=16)
 
 # AX3 - Latitudinal Gradient -------------------------------------------------
 col = ['#A50026', '#D73027', '#F46D43', '#FDAE61', '#FEE090', '#FFFFBF', '#E0F3F8', '#ABD9E9', '#74ADD1', '#4575B4', '#313695']
-# opacity = [0.1, 0.1, 0.1, 1, 1, 1, 1, 0.1, 0.1, 0.1, 0.1] # To emphasize millennial-scale variability
 ax3 = fig.add_subplot(gs[2, 0:2])
 
 # Perform linear regressions of temperature ~ latitude for each 1000 year bin
@@ -308,11 +319,6 @@ for ii, age_bin in enumerate(kilo_bins['age'].unique()[(kilo_bins['age'].unique(
     # Plot
     ax3.scatter(x=kilo_bins['lat'][kilo_bins['age'] == age_bin], y=kilo_bins['tave'][kilo_bins['age'] == age_bin], color=col[ii])
     ax3.plot(np.arange(25, 50, 1), lin.predict(np.arange(25, 50, 1).reshape(-1, 1)), c=col[ii], label=np.floor(age_bin/1000).astype('int'), lw=5)
-# ax3.arrow(x=29.85, y=1, dx=0, dy=8, width=.5, facecolor='black', edgecolor='black') 
-ax3.text(31.35, -10, 'Climatic\nfulcrum')
-ax3.plot([30,30], [0, -5], c='black', lw=5)
-ax3.plot([35,35], [0, -5], c='black', lw=5)
-ax3.plot([30,35], [-5, -5], c='black', lw=5)
 ax3.set_ylabel('Temperature ($^{\circ}$C)')
 ax3.set_xlabel('Latitude ($^{\circ}$)')
 ax3.set_xlim(26, 49)

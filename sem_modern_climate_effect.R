@@ -89,10 +89,7 @@ library(raster)
 library(spdep)
 library(sf)
 library(spatialreg)
-library(ncf)
 library(tidyverse)
-library(parallel)
-library(usdm)
 
 # Set working directory to project
 setwd("~/Fastovich_et_al_2023_PhilB")
@@ -284,16 +281,25 @@ for(i in seq(biodiversity_files)) {
 tave_fitted_tibble <- tave_fitted %>% 
   bind_rows() %>% 
   mutate(
+    model = case_when(
+      model == "PROXY_KRIGING" ~ "Proxy Kriging",
+      model == "TRACE_LORENZ" ~ "TraCE-21ka\n(Statistcally Downscaled)",
+      model == "TRACE_MWF" ~ "TraCE-MWF (Single Forcing)",
+      model == "TRACE" ~ "TraCE-21ka",
+      TRUE ~ model
+    )
+  ) %>% 
+  mutate(
     model = factor(
       model, 
       levels = c(
-        "PROXY_KRIGING", # proxy
-        "TRACE_LORENZ",
-        "TRACE", # sig+agree
-        "MIROC-S", # sig+oppo
+        "Proxy Kriging",
+        "TraCE-21ka\n(Statistcally Downscaled)",
+        "TraCE-21ka",
+        "MIROC-S",
         "CM2Mc",
-        "CCSM-NCAR", # insig
-        "TRACE_MWF",
+        "CCSM-NCAR",
+        "TraCE-MWF (Single Forcing)",
         "CCSM-MARUM", 
         "COSMOS-S",
         "IPSL",
@@ -308,16 +314,25 @@ tave_fitted_tibble <- tave_fitted %>%
 pr_fitted_tibble <- pr_fitted %>% 
   bind_rows() %>% 
   mutate(
+    model = case_when(
+      model == "PROXY_KRIGING" ~ "Proxy Kriging",
+      model == "TRACE_LORENZ" ~ "TraCE-21ka\n(Statistcally Downscaled)",
+      model == "TRACE_MWF" ~ "TraCE-MWF (Single Forcing)",
+      model == "TRACE" ~ "TraCE-21ka",
+      TRUE ~ model
+    )
+  ) %>% 
+  mutate(
     model = factor(
       model, 
       levels = c(
-        "PROXY_KRIGING", # proxy
-        "TRACE_LORENZ",
-        "TRACE", # sig+agree
-        "MIROC-S", # sig+oppo
+        "Proxy Kriging",
+        "TraCE-21ka\n(Statistcally Downscaled)",
+        "TraCE-21ka",
+        "MIROC-S",
         "CM2Mc",
-        "CCSM-NCAR", # insig
-        "TRACE_MWF",
+        "CCSM-NCAR",
+        "TraCE-MWF (Single Forcing)",
         "CCSM-MARUM", 
         "COSMOS-S",
         "IPSL",
@@ -385,13 +400,13 @@ richness_df <- richness_raster_list %>%
   add_column(sig = NA) %>% 
   crossing(
     model = c(
-      "PROXY_KRIGING",
-      "TRACE_LORENZ",
-      "TRACE",
+      "Proxy Kriging",
+      "TraCE-21ka\n(Statistcally Downscaled)",
+      "TraCE-21ka",
       "MIROC-S",
       "CM2Mc",
       "CCSM-NCAR",
-      "TRACE_MWF",
+      "TraCE-MWF (Single Forcing)",
       "CCSM-MARUM", 
       "COSMOS-S",
       "IPSL",
@@ -411,7 +426,7 @@ supp_modern_biodiversity_temperature_models <- tave_fitted_tibble %>%
   scale_fill_brewer(palette = "Dark2", name = "Species") + 
   scale_linetype_manual(values = c("dotted", "solid"), name = "Model Significance") + 
   facet_wrap(~model, scales = "free", ncol = 3) +
-  ylab("Fitted Species Richness") + 
+  ylab("Species Richness") + 
   xlab("Modern Mean Annual Temperature (K)")
 
 ggsave(supp_modern_biodiversity_temperature_models, filename = "figures/sar_biodiversity_temperature_modern_ena_modern_correlates_quadratic.pdf", height = 10, width = 8, dpi = 300)
@@ -427,7 +442,7 @@ supp_modern_biodiversity_precipitation_models <- pr_fitted_tibble %>%
   scale_fill_brewer(palette = "Dark2", name = "Species") + 
   scale_linetype_manual(values = c("dotted", "solid"), name = "Model Significance") + 
   facet_wrap(~model, scales = "free", ncol = 3) +
-  ylab("Fitted Species Richness") + 
+  ylab("Species Richness") + 
   xlab("Modern Mean Annual Precipitation (mm/day)")
 
 ggsave(supp_modern_biodiversity_precipitation_models, filename = "figures/sar_biodiversity_precipitation_modern_ena_modern_correlates_quadratic.pdf", height = 10, width = 8, dpi = 300)

@@ -698,14 +698,28 @@ for(i in seq(biodiversity_files)) {
           AIC_fit_600 = AIC(fit_600),
           AIC_fit_800 = AIC(fit_800),
           AIC_fit_1000 = AIC(fit_1000),
-          pseudo_r2_fit_null = summary(fit_null, Nagelkerke = TRUE)$NK,
-          pseudo_r2_fit_50 = summary(fit_50, Nagelkerke = TRUE)$NK,
-          pseudo_r2_fit_100 = summary(fit_100, Nagelkerke = TRUE)$NK,
-          pseudo_r2_fit_200 = summary(fit_200, Nagelkerke = TRUE)$NK,
-          pseudo_r2_fit_400 = summary(fit_400, Nagelkerke = TRUE)$NK,
-          pseudo_r2_fit_600 = summary(fit_600, Nagelkerke = TRUE)$NK,
-          pseudo_r2_fit_800 = summary(fit_800, Nagelkerke = TRUE)$NK,
-          pseudo_r2_fit_1000 = summary(fit_1000, Nagelkerke = TRUE)$NK,
+          logLik_fit_50 = logLik(fit_50),
+          logLik_fit_100 = logLik(fit_100),
+          logLik_fit_200 = logLik(fit_200),
+          logLik_fit_400 = logLik(fit_400),
+          logLik_fit_600 = logLik(fit_600),
+          logLik_fit_800 = logLik(fit_800),
+          logLik_fit_1000 = logLik(fit_1000),
+          pseudo_r2full_fit_null = summary(fit_null, Nagelkerke = TRUE)$NK,
+          pseudo_r2full_fit_50 = summary(fit_50, Nagelkerke = TRUE)$NK,
+          pseudo_r2full_fit_100 = summary(fit_100, Nagelkerke = TRUE)$NK,
+          pseudo_r2full_fit_200 = summary(fit_200, Nagelkerke = TRUE)$NK,
+          pseudo_r2full_fit_400 = summary(fit_400, Nagelkerke = TRUE)$NK,
+          pseudo_r2full_fit_600 = summary(fit_600, Nagelkerke = TRUE)$NK,
+          pseudo_r2full_fit_800 = summary(fit_800, Nagelkerke = TRUE)$NK,
+          pseudo_r2full_fit_1000 = summary(fit_1000, Nagelkerke = TRUE)$NK,
+          pseudo_r2env_fit_50 = abs(summary(fit_50, Nagelkerke = TRUE)$NK - summary(fit_null, Nagelkerke = TRUE)$NK),
+          pseudo_r2env_fit_100 = abs(summary(fit_100, Nagelkerke = TRUE)$NK - summary(fit_null, Nagelkerke = TRUE)$NK),
+          pseudo_r2env_fit_200 = abs(summary(fit_200, Nagelkerke = TRUE)$NK - summary(fit_null, Nagelkerke = TRUE)$NK),
+          pseudo_r2env_fit_400 = abs(summary(fit_400, Nagelkerke = TRUE)$NK - summary(fit_null, Nagelkerke = TRUE)$NK),
+          pseudo_r2env_fit_600 = abs(summary(fit_600, Nagelkerke = TRUE)$NK - summary(fit_null, Nagelkerke = TRUE)$NK),
+          pseudo_r2env_fit_800 = abs(summary(fit_800, Nagelkerke = TRUE)$NK - summary(fit_null, Nagelkerke = TRUE)$NK),
+          pseudo_r2env_fit_1000 = abs(summary(fit_1000, Nagelkerke = TRUE)$NK - summary(fit_null, Nagelkerke = TRUE)$NK),
           moran_fit_null = raster::Moran(res_raster_fit_null),
           moran_fit_50 = raster::Moran(res_raster_fit_50),
           moran_fit_100 = raster::Moran(res_raster_fit_100),
@@ -813,16 +827,25 @@ diag_list %>%
 tave_fitted_tibble <- tave_fitted %>% 
   bind_rows() %>% 
   mutate(
+    model = case_when(
+      model == "PROXY_KRIGING" ~ "Proxy Kriging",
+      model == "TRACE_LORENZ" ~ "TraCE-21ka\n(Statistcally Downscaled)",
+      model == "TRACE_MWF" ~ "TraCE-MWF (Single Forcing)",
+      model == "TRACE" ~ "TraCE-21ka",
+      TRUE ~ model
+    )
+  ) %>% 
+  mutate(
     model = factor(
       model, 
       levels = c(
-        "PROXY_KRIGING", # proxy
-        "TRACE_LORENZ",
-        "TRACE", # sig+agree
+        "Proxy Kriging", # proxy
+        "TraCE-21ka\n(Statistcally Downscaled)",
+        "TraCE-21ka", # sig+agree
         "MIROC-S", # sig+oppo
         "CM2Mc",
         "CCSM-NCAR", # insig
-        "TRACE_MWF",
+        "TraCE-MWF (Single Forcing)",
         "CCSM-MARUM", 
         "COSMOS-S",
         "IPSL",
@@ -837,16 +860,25 @@ tave_fitted_tibble <- tave_fitted %>%
 pr_fitted_tibble <- pr_fitted %>% 
   bind_rows() %>% 
   mutate(
+    model = case_when(
+      model == "PROXY_KRIGING" ~ "Proxy Kriging",
+      model == "TRACE_LORENZ" ~ "TraCE-21ka\n(Statistcally Downscaled)",
+      model == "TRACE_MWF" ~ "TraCE-MWF (Single Forcing)",
+      model == "TRACE" ~ "TraCE-21ka",
+      TRUE ~ model
+    )
+  ) %>% 
+  mutate(
     model = factor(
       model, 
       levels = c(
-        "PROXY_KRIGING", # proxy
-        "TRACE_LORENZ",
-        "TRACE", # sig+agree
+        "Proxy Kriging", # proxy
+        "TraCE-21ka\n(Statistcally Downscaled)",
+        "TraCE-21ka", # sig+agree
         "MIROC-S", # sig+oppo
         "CM2Mc",
         "CCSM-NCAR", # insig
-        "TRACE_MWF",
+        "TraCE-MWF (Single Forcing)",
         "CCSM-MARUM", 
         "COSMOS-S",
         "IPSL",
@@ -857,9 +889,6 @@ pr_fitted_tibble <- pr_fitted %>%
     )
   ) %>% 
   select(-c(modern_tave, modern_pr))
-
-# Combining the sig and sig2 to unique identifiers
-
 
 # Setting theme
 theme <- 
@@ -1005,16 +1034,25 @@ model_tave_richness_df <- model_tave_raster_list %>%
   purrr::map(function(x) right_join(x, richness_df, by = c("x", "y"))) %>% 
   bind_rows() %>% 
   mutate(
+    model = case_when(
+      model == "PROXY_KRIGING" ~ "Proxy Kriging",
+      model == "TRACE_LORENZ" ~ "TraCE-21ka\n(Statistcally Downscaled)",
+      model == "TRACE_MWF" ~ "TraCE-MWF (Single Forcing)",
+      model == "TRACE" ~ "TraCE-21ka",
+      TRUE ~ model
+    )
+  ) %>% 
+  mutate(
     model = factor(
       model, 
       levels = c(
-        "PROXY_KRIGING",
-        "TRACE_LORENZ",
-        "TRACE",
+        "Proxy Kriging",
+        "TraCE-21ka\n(Statistcally Downscaled)",
+        "TraCE-21ka",
         "MIROC-S",
         "CM2Mc",
         "CCSM-NCAR",
-        "TRACE_MWF",
+        "TraCE-MWF (Single Forcing)",
         "CCSM-MARUM", 
         "COSMOS-S",
         "IPSL",
@@ -1030,16 +1068,25 @@ model_pr_richness_df <- model_pr_raster_list %>%
   purrr::map(function(x) right_join(x, richness_df, by = c("x", "y"))) %>% 
   bind_rows() %>% 
   mutate(
+    model = case_when(
+      model == "PROXY_KRIGING" ~ "Proxy Kriging",
+      model == "TRACE_LORENZ" ~ "TraCE-21ka\n(Statistcally Downscaled)",
+      model == "TRACE_MWF" ~ "TraCE-MWF (Single Forcing)",
+      model == "TRACE" ~ "TraCE-21ka",
+      TRUE ~ model
+    )
+  ) %>% 
+  mutate(
     model = factor(
       model, 
       levels = c(
-        "PROXY_KRIGING", # proxy
-        "TRACE_LORENZ",
-        "TRACE", # sig+agree
+        "Proxy Kriging", # proxy
+        "TraCE-21ka\n(Statistcally Downscaled)",
+        "TraCE-21ka", # sig+agree
         "MIROC-S", # sig+oppo
         "CM2Mc",
         "CCSM-NCAR", # insig
-        "TRACE_MWF",
+        "TraCE-MWF (Single Forcing)",
         "CCSM-MARUM", 
         "COSMOS-S",
         "IPSL",
@@ -1050,27 +1097,27 @@ model_pr_richness_df <- model_pr_raster_list %>%
     )
   )
 
-
 # PLOT 2A,C,E,G - TEMPERATURE FOR SELECT MODELS --------------------------------
 
 # Creating an annotation data frame to label facets
 ann_df <- tave_fitted_tibble %>% 
-  filter(model %in% c("PROXY_KRIGING", "TRACE_LORENZ", "IPSL", "MIROC-W")) %>%
+  filter(model %in% c("Proxy Kriging", "TraCE-21ka\n(Statistcally Downscaled)", "IPSL", "MIROC-W")) %>%
   select(model) %>%
   distinct() %>% 
   add_column(label = LETTERS[c(5, 7, 1, 3)], sig = NA, species = NA)
 
 biodiversity_temperature_models <- tave_fitted_tibble %>% 
-  filter(model %in% c("PROXY_KRIGING", "TRACE_LORENZ", "IPSL", "MIROC-W")) %>% 
+  filter(model %in% c("Proxy Kriging", "TraCE-21ka\n(Statistcally Downscaled)", "IPSL", "MIROC-W")) %>% 
   ggplot(aes(x = model_tave, y = fit, color = species, linetype = sig)) + 
-  geom_point(data = model_tave_richness_df %>% filter(model %in% c("PROXY_KRIGING", "TRACE_LORENZ", "IPSL", "MIROC-W")), aes(x = model_tave, y = richness, color = species), alpha = 0.025) +
+  geom_point(data = model_tave_richness_df %>% filter(model %in% c("Proxy Kriging", "TraCE-21ka\n(Statistcally Downscaled)", "IPSL", "MIROC-W")), aes(x = model_tave, y = richness, color = species), alpha = 0.025) +
   geom_path() + 
   scale_color_brewer(palette = "Dark2", name = "Species") + 
   scale_fill_brewer(palette = "Dark2", name = "Species") + 
   scale_linetype_manual(values = c("dotted", "solid"), name = "Model Significance") + 
+  geom_vline(xintercept = 0, color = "black", linetype = "dashed", size = 0.5) + 
   facet_wrap(~ model, scales = "free", ncol = 1) +
-  geom_text(data = ann_df, aes(x = -Inf, y = -Inf, label = label), color = "black", size = 4, hjust = -0.25, vjust = -16.9, fontface = "bold") +
-  ylab("Fitted Species Richness") + 
+  geom_text(data = ann_df, aes(x = -Inf, y = -Inf, label = label), color = "black", size = 4, hjust = -0.25, vjust = -15.8, fontface = "bold") +
+  ylab("Species Richness") + 
   xlab("Temperature Anomaly (K)") + 
   theme(panel.spacing.y = unit(-.2, "cm"),
         strip.text = element_text(color = "black", vjust = -0.05),
@@ -1079,21 +1126,22 @@ biodiversity_temperature_models <- tave_fitted_tibble %>%
 # PLOT 2B,D,F,H - PRECIPITATION FOR SELECT MODELS ------------------------------
 
 ann_df <- pr_fitted_tibble %>% 
-  filter(model %in% c("PROXY_KRIGING", "TRACE_LORENZ", "IPSL", "MIROC-W")) %>%
+  filter(model %in% c("Proxy Kriging", "TraCE-21ka\n(Statistcally Downscaled)", "IPSL", "MIROC-W")) %>%
   select(model) %>%
   distinct() %>% 
   add_column(label = LETTERS[c(6, 8, 2, 4)], sig = NA, species = NA)
 
 biodiversity_precipitation_models <- pr_fitted_tibble %>% 
-  filter(model %in% c("PROXY_KRIGING", "TRACE_LORENZ", "IPSL", "MIROC-W")) %>% 
+  filter(model %in% c("Proxy Kriging", "TraCE-21ka\n(Statistcally Downscaled)", "IPSL", "MIROC-W")) %>% 
   ggplot(aes(x = model_pr, y = fit, color = species, linetype = sig)) + 
-  geom_point(data = model_pr_richness_df %>% filter(model %in% c("PROXY_KRIGING", "TRACE_LORENZ", "IPSL", "MIROC-W")), aes(x = model_pr, y = richness, color = species), alpha = 0.025) +
+  geom_point(data = model_pr_richness_df %>% filter(model %in% c("Proxy Kriging", "TraCE-21ka\n(Statistcally Downscaled)", "IPSL", "MIROC-W")), aes(x = model_pr, y = richness, color = species), alpha = 0.025) +
   geom_path() + 
   scale_color_brewer(palette = "Dark2", name = "Species") + 
   scale_fill_brewer(palette = "Dark2", name = "Species") + 
   scale_linetype_manual(values = c("dotted", "dashed", "twodash", "solid"), name = "Model Significance", breaks=c("Not Significant", "Only Linear Term Significant", "Only Quadratic Term Significant", "Significant")) + 
+  geom_vline(xintercept = 0, color = "black", linetype = "dashed", size = 0.5) + 
   facet_wrap(~model, scales = "free", ncol = 1) +
-  geom_text(data = ann_df, aes(x = -Inf, y = -Inf, label = label), color = "black", size = 4, hjust = -0.25, vjust = -16.9, fontface = "bold") +
+  geom_text(data = ann_df, aes(x = -Inf, y = -Inf, label = label), color = "black", size = 4, hjust = -0.25, vjust = -15.8, fontface = "bold") +
   xlab("Precipitation Anomaly (mm/day)") + 
   theme(panel.spacing.y = unit(-.2, "cm"),
         strip.text = element_text(color = "black", vjust = -0.05),
@@ -1105,8 +1153,8 @@ biodiversity_precipitation_models <- pr_fitted_tibble %>%
 # Combine Plot 1 and Plot 2 into a single plot using patchwork and then save
 biodiversity_models_combined <- biodiversity_temperature_models + biodiversity_precipitation_models
 
-ggsave(biodiversity_models_combined, filename = "figures/sar_biodiversity_combined_model_ena_two_models_quadratic.pdf", height = 10, width = 8, dpi = 300)
-ggsave(biodiversity_models_combined, filename = "figures/sar_biodiversity_combined_model_ena_two_models_quadratic.png", height = 10, width = 8, dpi = 300)
+ggsave(biodiversity_models_combined, filename = "figures/sar_biodiversity_combined_model_ena_two_models_quadratic.pdf", height = 10, width = 7, dpi = 300)
+ggsave(biodiversity_models_combined, filename = "figures/sar_biodiversity_combined_model_ena_two_models_quadratic.png", height = 10, width = 7, dpi = 300)
 
 # PLOT S2 - TEMPERATURE FOR ALL MODELS PALEOCLIMATE + MODERN ONLY --------------
 
@@ -1117,8 +1165,9 @@ supp_modern_biodiversity_temperature_models <- tave_fitted_tibble %>%
   scale_color_brewer(palette = "Dark2", name = "Species") + 
   scale_fill_brewer(palette = "Dark2", name = "Species") + 
   scale_linetype_manual(values = c("dotted", "solid"), name = "Model Significance") + 
+  geom_vline(xintercept = 0, color = "black", linetype = "dashed", size = 0.5) + 
   facet_wrap(~model, scales = "free", ncol = 3) +
-  ylab("Fitted Species Richness") + 
+  ylab("Species Richness") + 
   xlab("Temperature Anomaly (K)")
 
 ggsave(supp_modern_biodiversity_temperature_models, filename = "figures/sar_biodiversity_temperature_model_ena_modern_correlates_quadratic.pdf", height = 10, width = 8, dpi = 300)
@@ -1133,8 +1182,9 @@ supp_modern_biodiversity_precipitation_models <- pr_fitted_tibble %>%
   scale_color_brewer(palette = "Dark2", name = "Species") + 
   scale_fill_brewer(palette = "Dark2", name = "Species") + 
   scale_linetype_manual(values = c("dotted", "dashed", "twodash", "solid"), name = "Model Significance", breaks=c("Not Significant", "Only Linear Term Significant", "Only Quadratic Term Significant", "Significant")) + 
+  geom_vline(xintercept = 0, color = "black", linetype = "dashed", size = 0.5) + 
   facet_wrap(~model, scales = "free", ncol = 3) +
-  ylab("Fitted Species Richness") + 
+  ylab("Species Richness") + 
   xlab("Precipitation Anomaly (mm/day)")
 
 ggsave(supp_modern_biodiversity_precipitation_models, filename = "figures/sar_biodiversity_precipitation_model_ena_modern_correlates_quadratic.pdf", height = 10, width = 8, dpi = 300)

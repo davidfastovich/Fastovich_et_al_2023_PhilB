@@ -45,24 +45,24 @@ tas_skill <- read.csv("skill_scores/tas_skill.csv")
 # Calculated by me from pr_skill.py 
 pr_skill <- read.csv("skill_scores/pr_skill.csv")
 
-# AIC from the SEM models calculated here
-aic <- read_csv("skill_scores/sar_diag_nonlinear_again.csv") %>%
-  select(AIC_fit_50, AIC_fit_100, climate_simulation, species) %>% 
+# loglik from the SEM models calculated here
+loglik <- read_csv("skill_scores/sar_diag.csv") %>%
+  select(logLik_fit_50, logLik_fit_100, climate_simulation, species) %>% 
   rename(model = climate_simulation)
 
-aic <- aic %>% 
+loglik <- loglik %>% 
   mutate(
-    AIC = case_when(
-      species != "bird" ~ AIC_fit_50,
-      species == "bird" ~ AIC_fit_100,
+    loglik = case_when(
+      species != "bird" ~ logLik_fit_50,
+      species == "bird" ~ logLik_fit_100,
     )
   )
 
-# Removing proxy AIC because there is no skill score for proxy-proxy comparisons
+# Removing proxy loglik because there is no skill score for proxy-proxy comparisons
 # its strictly a model skill metric. However, we still want this value because
-# its a useful metric for compariing AIC between models and the proxy record.
-aic_proxy <- aic[aic$model == "PROXY_KRIGING",]
-aic <- aic[aic$model != "PROXY_KRIGING",]
+# its a useful metric for compariing loglik between models and the proxy record.
+loglik_proxy <- loglik[loglik$model == "PROXY_KRIGING",]
+loglik <- loglik[loglik$model != "PROXY_KRIGING",]
 
 ####################
 # CLEAN MODEL COLUMN
@@ -98,17 +98,26 @@ rename_species <- function(x) {
   }
 }
 
-# Apply function to the AIC data frames
-aic$species <- sapply(aic$species, rename_species, USE.NAMES = FALSE)
-aic_proxy$species <- sapply(aic_proxy$species, rename_species, USE.NAMES = FALSE)
+# Apply function to the loglik data frames
+loglik$species <- sapply(loglik$species, rename_species, USE.NAMES = FALSE)
 
 #########################
 # MERGE ALL DATA TOGETHER
 #########################
 
-tas_skill_aic <- full_join(aic, tas_skill, by = "model")
-pr_skill_aic <- left_join(aic, pr_skill, by = "model")
+tas_skill_loglik <- full_join(loglik, tas_skill, by = "model")
+pr_skill_loglik <- left_join(loglik, pr_skill, by = "model")
 
+# Renaming PROXY_KRIGING, TRACE_LORENZ, TRACE, and TRACE-MWF
+tas_skill_loglik$model[tas_skill_loglik$model == "PROXY_KRIGING"] <- "Proxy Kriging"
+tas_skill_loglik$model[tas_skill_loglik$model == "TRACE_LORENZ"] <- "TraCE-21ka\n(Statistcally Downscaled)"
+tas_skill_loglik$model[tas_skill_loglik$model == "TRACE_MWF"] <- "TraCE-MWF (Single Forcing)"
+tas_skill_loglik$model[tas_skill_loglik$model == "TRACE"] <- "TraCE-21ka"
+
+pr_skill_loglik$model[pr_skill_loglik$model == "PROXY_KRIGING"] <- "Proxy Kriging"
+pr_skill_loglik$model[pr_skill_loglik$model == "TRACE_LORENZ"] <- "TraCE-21ka\n(Statistcally Downscaled)"
+pr_skill_loglik$model[pr_skill_loglik$model == "TRACE_MWF"] <- "TraCE-MWF (Single Forcing)"
+pr_skill_loglik$model[pr_skill_loglik$model == "TRACE"] <- "TraCE-21ka"
 
 ######
 # PLOT
@@ -123,22 +132,19 @@ guides_merge <- function(gdefs) {
 environment(guides_merge) <- environment(ggplot)
 assignInNamespace("guides_merge", guides_merge, pos = "package:ggplot2")
 
-# AIC vs Temperature skill -----------------------------------------------------
-tas_plot = ggplot(data = tas_skill_aic, aes(x = median_skill, y = AIC, shape = model, color = species, fill = species)) + 
-  # geom_ribbon(data = regression_line_tas, aes(x = median_skill, y = fit, ymin = lwr, ymax = upr), color = "transparent", alpha = 0.2) +
-  # geom_line(data = regression_line_tas, aes(x = median_skill, y = fit, linetype = sig)) + 
+# loglik vs Temperature skill -----------------------------------------------------
+tas_plot = ggplot(data = tas_skill_loglik, aes(x = median_skill, y = loglik, shape = model, color = species, fill = species)) + 
   scale_linetype_manual(values = c("dashed", "solid"), name = "Model Significance") + 
   geom_point() + 
   scale_shape_manual(values = 1:12, name = "Model") + 
   scale_color_brewer(palette = "Dark2", name = "Species") + 
   scale_fill_brewer(palette = "Dark2", name = "Species", guide = "none") +
-  # geom_hline(data = aic_proxy, aes(yintercept = AIC), color = "grey50") + 
   facet_wrap(~species+null, scales = "free_y", nrow = 5, labeller = function (labels) {
     labels <- lapply(labels, as.character)
     list(do.call(paste, c(labels, list(sep = "\n"))))
   }) + 
   xlab("Temperature Climate Model Skill Score") + 
-  scale_y_reverse() +
+  ylab("Log-Likelihood") + 
   guides(color = guide_legend(order = 1), linetype = guide_legend(order = 2), shape = guide_legend(order = 3)) +
   theme_bw() + 
   theme(strip.background = element_blank(),
@@ -152,22 +158,19 @@ tas_plot = ggplot(data = tas_skill_aic, aes(x = median_skill, y = AIC, shape = m
 ggsave(tas_plot, filename = "figures/synthesis_temperature_paleo_modern_sar_quadratic.pdf", height = 10, width = 8, dpi = 300)
 ggsave(tas_plot, filename = "figures/synthesis_temperature_paleo_modern_sar_quadratic.png", height = 10, width = 8, dpi = 300)
 
-# AIC vs Precipitation skill ---------------------------------------------------
-pr_plot = ggplot(data = pr_skill_aic, aes(x = median_skill, y = AIC, shape = model, color = species, fill = species)) + 
-  # geom_ribbon(data = regression_line_pr, aes(x = median_skill, y = fit, ymin = lwr, ymax = upr), color = "transparent", alpha = 0.2) +
-  # geom_line(data = regression_line_pr, aes(x = median_skill, y = fit, linetype = sig)) + 
+# loglik vs Precipitation skill ---------------------------------------------------
+pr_plot = ggplot(data = pr_skill_loglik, aes(x = median_skill, y = loglik, shape = model, color = species, fill = species)) + 
   scale_linetype_manual(values = c("dashed", "solid"), name = "Model Significance") + 
   geom_point() + 
   scale_shape_manual(values = 1:12, name = "Model") + 
   scale_color_brewer(palette = "Dark2", name = "Species") + 
   scale_fill_brewer(palette = "Dark2", name = "Species", guide = "none") +
-  # geom_hline(data = aic_proxy, aes(yintercept = AIC), color = "grey50") + 
   facet_wrap(~species+null, scales = "free_y", nrow = 5, labeller = function (labels) {
     labels <- lapply(labels, as.character)
     list(do.call(paste, c(labels, list(sep = "\n"))))
   }) + 
   xlab("Precipitation Climate Model Skill Score") + 
-  scale_y_reverse() +
+  ylab("Log-Likelihood") + 
   guides(color = guide_legend(order = 1), linetype = guide_legend(order = 2), shape = guide_legend(order = 3)) +
   theme_bw() + 
   theme(strip.background = element_blank(),
